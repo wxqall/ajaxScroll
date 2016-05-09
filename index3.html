@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<style>
+    .ajaxState #ajax_loading{
+        position: relative;
+    }
+    #ajax_loading{
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 999;
+        background: rgba(255,255,255,.5);
+    }
+    .spinner6 {
+        margin: 100px auto 0;
+        width: 150px;
+        text-align: center;
+    }
+
+    .spinner6 > div {
+        width: 30px;
+        height: 30px;
+        background-color: #67CF22;
+
+        border-radius: 100%;
+        display: inline-block;
+        -webkit-animation: bouncedelay 1.4s infinite ease-in-out;
+        animation: bouncedelay 1.4s infinite ease-in-out;
+        /* Prevent first frame from flickering when animation starts */
+        -webkit-animation-fill-mode: both;
+        animation-fill-mode: both;
+    }
+
+    .spinner6 .bounce1 {
+        -webkit-animation-delay: -0.32s;
+        animation-delay: -0.32s;
+    }
+
+    .spinner6 .bounce2 {
+        -webkit-animation-delay: -0.16s;
+        animation-delay: -0.16s;
+    }
+
+    @-webkit-keyframes bouncedelay {
+        0%, 80%, 100% { -webkit-transform: scale(0.0) }
+        40% { -webkit-transform: scale(1.0) }
+    }
+
+    @keyframes bouncedelay {
+        0%, 80%, 100% {
+            transform: scale(0.0);
+            -webkit-transform: scale(0.0);
+        } 40% {
+              transform: scale(1.0);
+              -webkit-transform: scale(1.0);
+          }
+    }
+    body{
+        margin: 0;
+        padding: 0;
+    }
+    ul,li{
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .tabBox{
+        width: 100%;
+        height: 50px;
+        display: block;
+    }
+    .tabs{
+        width: 100%;
+        background: #ccc;
+        letter-spacing: -4px;
+    }
+    .tabs li{
+        letter-spacing: 0px;
+        width: 32%;
+        height: 50px;
+        text-align: center;
+        display: inline-block;
+        line-height: 50px;
+        border-right: solid 1px #fff;
+    }
+    .tabs li:nth-last-child(1){
+        border: none;.
+    }
+    .tabs li.active{
+        background: #fff;
+        color: #333;
+    }
+    .content{
+        padding: 10px;
+        margin: 10px 0;
+        background: #efefef;
+    }
+    .noData{
+        width: 100%;
+        height: 50px;
+        text-align: center;
+        line-height: 30px;
+    }
+    .start{
+        float: right;
+    }
+    .yellow{
+        background: yellow;
+        color: #000;
+    }
+    .red{
+        background: red;
+        color: #fff;
+    }
+    .black{
+        background: #000;
+        color: #fff;
+    }
+    .gary{
+
+        background: #efefef;
+    }
+
+</style>
+<body>
+<div class="tabBox">
+    <ul class="tabs">
+        <li class="active">type1</li>
+        <li>type2</li>
+        <li>type3</li>
+    </ul>
+    <div class="conBox">
+        <div class="tabcon"></div>
+        <div class="tabcon"></div>
+        <div class="tabcon"></div>
+    </div>
+    <div class="ajaxState"></div>
+</div>
+<script src="js/jquery-1.11.1.min.js"></script>
+<script>
+    ;(function(){
+        (function(){
+            function AjaxLoading(){
+                this.dom = $("<div>",{id:"ajax_loading"}).html('<div class="spinner6">'+
+                        '<div class="bounce1"></div>'+
+                        '<div class="bounce2"></div>'+
+                        '<div class="bounce3"></div></div><div class="mask '+this.maskClass+'"></div>');
+            }
+            AjaxLoading.prototype = {
+                "open" : function(Wrap){
+//                    var wrap = Wrap || "body";
+                    $(Wrap || "body").append(this.dom);
+                },
+                "remove" : function(){
+                    this.dom.remove();
+                }
+            }
+            window.AjaxLoading = AjaxLoading;
+        })();
+        function AiaxHttp(){
+            this.tabcon = $(".tabcon");
+            this.tabs = $(".tabs li");
+            this.conBox = $(".conBox");
+            this.ajaxState = $(".ajaxState");
+            this.page = 1;
+            this.pageSize = 10;
+            this.lock = false;
+            this.type = 0;
+        }
+        AiaxHttp.prototype = {
+            "init":function(){
+                this.ajax();
+                this.scroll();
+                this.click();
+                this.tabs.data("page",1);
+            },
+            "ajax" : function(){
+                var _this = this;
+                _this.lock = false;
+                var loading = new AjaxLoading();
+                $.ajax({
+                    url:"http://192.168.1.100:3000/article/",
+                    type:"get",
+                    data:{page:_this.page,pageSize:_this.pageSize,type:_this.type},
+                    beforeSend : function(){
+
+                        if(_this.page == 1){
+                            loading.open();
+                        }else{
+                            loading.open(_this.ajaxState);
+                        }
+                    },
+                    success:function(e){
+                        var d = e.data;
+                        console.log(d)
+                        if(!$.isEmptyObject(d)){
+                            if(e.status == "ok"){
+                                _this.lock = true;
+                                _this.creatHtml(d);
+
+                                ++_this.page;
+                                _this.tabs.eq(_this.type).data("page",_this.page);
+                            }
+                        }else{
+                            if(_this.page == 1){
+                                _this.ajaxState.html("暂无数据");
+                            }else{
+                                _this.ajaxState.html("最后一条了");
+                            }
+                        }
+
+                    },
+                    complete : function(){
+                        console.log(_this.page)
+                        loading.remove();
+                    }
+                });
+                return this;
+            },
+            "startType" : function(e){
+                var arr = {};
+                switch (e) {
+                    case 1:
+                        arr.text = "未读";
+                        arr.color = "black";
+                        break;
+                    case 2:
+                        arr.text = "已读";
+                        arr.color = "gray";
+                        break;
+                    case 3:
+                        arr.text = "删除";
+                        arr.color = "red";
+                        break;
+                    case 4:
+                        arr.text = "未知";
+                        arr.color = "yellow";
+                        break;
+                }
+                return arr;
+            },
+            "creatHtml" : function(e){
+                var _this = this;
+                var _obj = [];
+                $.each(e,function(k,v){
+                    var val = _this.startType(v.type);
+                    console.log(val)
+                    _obj.push('<div class="content '+val.color+'">',
+                            '<h4>'+ v.title+' <span class="start">'+val.text+'</span></h4>',
+                            '<span class="subTitle">'+ v.author +'</span>',
+                            '<span class="time">'+ v.post_time +'</span>',
+                            ' <span class="money">'+ v.read_count +'</span>',
+                            '</div>');
+                })
+                return this.tabcon.eq(this.type).append(_obj.join(""));
+            },
+            "scroll" : function(){
+                var _this = this;
+                var W_h = $(window).height();
+                $(window).on("scroll",function(){
+                    var S_t = $(window).scrollTop();
+                    var D_h = $(document).height();
+                    if(W_h + S_t > D_h - 20){
+                       if(_this.lock){
+                           _this.ajax();
+                           _this.lock = false;
+                       }
+                    }
+                })
+            },
+            "click" : function(){
+                var _this = this;
+                $(this.tabs).on("click",function(){
+                    var index = $(this).index();
+                    $(this).addClass("active").siblings().removeClass("active");
+                    _this.tabcon.eq(index).show().siblings().hide();
+                    _this.page = $(this).data("page");
+                    if(_this.type != index){
+                        _this.type = index;
+                        console.log(_this.page)
+                        _this.page == 1 ? _this.ajax() : "";
+                    }
+                })
+            }
+        }
+
+        new AiaxHttp().init();
+    })();
+</script>
+</body>
+</html>

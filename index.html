@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<style>
+    .ajaxState #ajax_loading{
+        position: relative;
+    }
+    #ajax_loading{
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 999;
+        background: rgba(255,255,255,.5);
+    }
+    .spinner6 {
+        margin: 100px auto 0;
+        width: 150px;
+        text-align: center;
+    }
+
+    .spinner6 > div {
+        width: 30px;
+        height: 30px;
+        background-color: #67CF22;
+
+        border-radius: 100%;
+        display: inline-block;
+        -webkit-animation: bouncedelay 1.4s infinite ease-in-out;
+        animation: bouncedelay 1.4s infinite ease-in-out;
+        /* Prevent first frame from flickering when animation starts */
+        -webkit-animation-fill-mode: both;
+        animation-fill-mode: both;
+    }
+
+    .spinner6 .bounce1 {
+        -webkit-animation-delay: -0.32s;
+        animation-delay: -0.32s;
+    }
+
+    .spinner6 .bounce2 {
+        -webkit-animation-delay: -0.16s;
+        animation-delay: -0.16s;
+    }
+
+    @-webkit-keyframes bouncedelay {
+        0%, 80%, 100% { -webkit-transform: scale(0.0) }
+        40% { -webkit-transform: scale(1.0) }
+    }
+
+    @keyframes bouncedelay {
+        0%, 80%, 100% {
+            transform: scale(0.0);
+            -webkit-transform: scale(0.0);
+        } 40% {
+              transform: scale(1.0);
+              -webkit-transform: scale(1.0);
+          }
+    }
+    body{
+        margin: 0;
+        padding: 0;
+    }
+    ul,li{
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .tabBox{
+        width: 100%;
+        height: 50px;
+        display: block;
+    }
+    .tabs{
+        width: 100%;
+        background: #ccc;
+        letter-spacing: -4px;
+    }
+    .tabs li{
+        letter-spacing: 0px;
+        width: 32%;
+        height: 50px;
+        text-align: center;
+        display: inline-block;
+        line-height: 50px;
+        border-right: solid 1px #fff;
+    }
+    .tabs li:nth-last-child(1){
+        border: none;.
+    }
+    .tabs li.active{
+        background: #fff;
+        color: #333;
+    }
+    .content{
+        padding: 10px;
+        margin: 10px 0;
+        background: #efefef;
+    }
+    .noData{
+        width: 100%;
+        height: 50px;
+        text-align: center;
+        line-height: 30px;
+    }
+
+</style>
+<body>
+
+<div class="tabBox">
+    <ul class="tabs">
+        <li class="active">type1</li>
+        <li>type2</li>
+        <li>type3</li>
+    </ul>
+    <div class="tabcon">
+    </div>
+    <div class="ajaxState">
+
+    </div>
+</div>
+
+</body>
+<script src="js/jquery-1.11.1.min.js"></script>
+<script>
+    ;(function(){
+        function AjaxLoading(Target,mask){
+            this.maskClass = mask ? mask : "";
+            this.dom = {
+                "loadBox" : $("<div>",{"class":"loadBox","id":"ajax_loading"}).html('<div class="spinner6">'+
+                        '<div class="bounce1"></div>'+
+                        '<div class="bounce2"></div>'+
+                        '<div class="bounce3"></div></div><div class="mask '+this.maskClass+'"></div>')
+            }
+        }
+        AjaxLoading.prototype = {
+
+            "open" : function(Target){
+                var target = Target ? Target : "body";
+                $(target).append(this.dom.loadBox).fadeIn();
+            },
+            "close" : function(){
+                this.dom.loadBox.remove();
+            }
+        }
+        window.AjaxLoading = AjaxLoading;
+    })()
+    function ajaxHttp(){
+        this.page = 1;
+        this.pageSize = 10;
+        this.lock = false;
+        this.tClick = $(".tabs li");
+        this.type = 0 ;
+        this.tabBox = $(".tabcon");
+        this.$ajaxState = $(".ajaxState");
+        this.noDataHtml = {
+            "noData" : $("<div>",{"class":"noData"}).html("暂无数据")
+        };
+    }
+    ajaxHttp.prototype = {
+        "Ajax":function(){
+            var _this = this;
+            _this.lock = false;
+            var loading;
+            $.ajax({
+                url:"http://192.168.1.100:3000/article/",
+                type:"get",
+                data:{page:_this.page,pageSize:_this.pageSize,type:_this.type},
+                beforeSend:function(){
+                    loading = new AjaxLoading();
+                    _this.page == 1 ? loading.open() : loading.open(_this.$ajaxState);
+                },
+                success:function(e){
+                    _this.creatHtml(e);
+                    _this.lock = true;
+                    if(_this.pageSize == e.data.length){
+                        _this.lock = true;
+
+                    }else{
+                        _this.$ajaxState.html(_this.noDataHtml.noData.html("已经最后一条了"));
+                        _this.lock = false;
+                    }
+                },
+                complete:function(){
+                    loading.close();
+//                    _this.page == 1 ? loading.close() :"";
+                }
+            });
+            return this;
+        },
+        "creatHtml":function(e){
+            var _obj = [];
+            $.each(e.data,function(k,v){
+                _obj.push('<div class="content">',
+                        '<h4>'+ v.title +'</h4>',
+                        '<span class="subTitle">'+ v.author +'</span>',
+                        '<span class="time">'+ v.post_time +'</span>',
+                        ' <span class="money">'+ v.read_count +'</span>',
+                        '</div>');
+
+            })
+            return this.tabBox.append(_obj.join(""));
+        },
+        "scroll" : function(){
+            var _this = this;
+            var w_h = $(window).height();
+            $(window).on("scroll",function(){
+                var S_t = $(window).scrollTop();
+                var D_h = $(document).height();
+                if(_this.lock){
+                    if(S_t + w_h > D_h - 20){
+                        ++_this.page;
+                        console.log(_this.page)
+                        _this.Ajax();
+                    }
+                }
+
+            });
+            return this;
+        },
+        "empty" : function(index,that){
+            var _this = this;
+            _this.tabBox.empty();
+            _this.page = 1;
+            _this.type = index;
+            that.addClass("active").siblings().removeClass("active");
+            _this.$ajaxState.empty();
+            _this.Ajax();
+        },
+        "typeClick" : function(){
+            var _this = this;
+            _this.tClick.on("click",function(){
+                var that = $(this);
+                _this.type != that.index() ? _this.empty(that.index(),that) : "";
+            });
+        }
+
+
+
+    }
+    new ajaxHttp().Ajax().scroll().typeClick();
+
+
+
+
+</script>
+</html>

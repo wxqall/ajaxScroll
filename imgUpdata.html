@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>简单的html5 File测试 for pic2base64</title>
+    <style>
+    	
+    </style>
+    <script src="js/jquery-1.11.1.min.js" type="text/javascript" charset="utf-8"></script>
+    
+</head>
+<body>
+<!--<input type="file" value="sdgsdg" class="demo_input" multiple="multiple"/>-->
+<form action="" method="get" enctype="multipart/form-data">
+<div class="input"></div>
+<textarea id="result" rows=30 cols=300></textarea>
+<input type="submit" accept="image/png,image/gif" name="" id="" value="提交" />
+<!--<button type="submit"></button>-->
+<p id="img_area"></p>
+</form>
+
+<script>
+	;(function(){
+		function upload(){
+			this.$inputWrap = $(".input");
+			this.$imgWrap = $("#img_area");
+			this.creatInput();
+		};
+		upload.prototype = {
+			creatInput :function(){
+				var _this = this;
+				var _input = $("<input>",{type:"file",multiple:"multiple",name:"file","accept":"image/png,image/gif,image/jpg"}).on("change",function(){
+					_this.readFile(this);
+				});
+				this.$inputWrap.append(_input);
+				console.log(_input)
+				var inputL = $("input",this.$inputWrap);
+				if(inputL.length !== 1){
+					inputL.hide().last().show()
+				}
+			},
+			readFile:function(e){
+				var _this = this;
+				if(e.files.length<3){
+			        	for(var i = 0 ; i<e.files.length; i++){
+			            var file = e.files[i];
+			            //这里我们判断下类型如果不是图片就返回 去掉就可以上传任意文件
+			            if(!/image\/\w+/.test(file.type)){
+			                alert("请确保文件为图像类型");
+			                return false;
+			            }
+			            var reader = new FileReader();
+			            reader.readAsDataURL(file);
+			            reader.onload = function(e){
+			                _this.$imgWrap.append('<div class="sitetip">图片img标签展示：</div><img src="'+this.result+'" alt=""/>')
+			                
+			            }
+			        };
+			        _this.creatInput();
+	       		}else{
+		        		alert("图片不能大于3个");
+		        }
+			}
+		};
+		new upload();
+	})();
+
+
+
+    </script>
+</body>
+</html>
